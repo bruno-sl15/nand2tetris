@@ -1,0 +1,19 @@
+RESTART:
+    if RAM[KBD] == 0 goto NOT_PRESSED
+
+    PRESSED:
+        pixels = -1
+        goto DRAW
+    
+    NOT_PRESSED:
+        pixels = 0
+
+    DRAW:
+        addr = SCREEN
+
+        LOOP:
+            if addr == KBD goto RESTART
+            RAM[addr] = pixels
+            addr = addr + 1
+            goto LOOP
+
