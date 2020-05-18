@@ -1,7 +1,8 @@
 import re
 
 
-class Parser(object):
+#  Unpack each instruction into its underlying fields
+class Parser:
     def __init__(self):
         self._a_instruction = ''
         self._c_instruction = ''

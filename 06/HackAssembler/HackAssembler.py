@@ -1,9 +1,10 @@
-from .Parser import Parser
-from .Code import Code
+from Parser import Parser
+from Code import Code
 import sys
 
 
-class HackAssembler(object):
+# This implementation assumes that the given asm file has no sintax errors
+class HackAssembler:
     def __init__(self, file_name):
         self._parser = Parser()  # Parser object
         self._code = Code()  # Code object
@@ -38,7 +39,7 @@ class HackAssembler(object):
                     n = self._parser.number()
                     nn = self._code.number(n)
                     out = '0' + nn
-                self._machine_code.append(out)
+                self._machine_code.append(out+'\n')
             self._line += 1  # increment the line counter
             self._pass()  # move to the next recursive iteration
         else:  # finish the iterations
@@ -66,8 +67,9 @@ class HackAssembler(object):
 
 def main():
     if len(sys.argv) != 2:
-        print('Usage: HackAssembler Xxx.asm')
+        print('Usage: HackAssembler.py Xxx.asm')
     else:
+        sys.setrecursionlimit(17000)
         file_name = sys.argv[1]
         HackAssembler(file_name)
 
