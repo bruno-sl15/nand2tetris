@@ -1,5 +1,6 @@
 from Parser import Parser
 from Code import Code
+from SymbolTable import SymbolTable
 import sys
 
 
@@ -8,15 +9,32 @@ class HackAssembler:
     def __init__(self, file_name):
         self._parser = Parser()  # Parser object
         self._code = Code()  # Code object
+        self._symbol_table = SymbolTable()  # SymbolTable object
         asm_file = open(file_name, 'r')  # open the asm file
         self._instructions = asm_file.read().split('\n')  # initialize a list with the assembly instructions
         asm_file.close()  # close the asm file
         self._hack_file_name = file_name.split('.asm')[0] + '.hack'  # name of the output hack file
         self._machine_code = []  # initialize a list for the output hack instructions
-        self._pass()
+        self._first_pass()
+        self._second_pass()
+
+    # iterate to search for label declarations and put this labels in the symbol table
+    def _first_pass(self):
+        pc = 0  # program counter
+        for line in self._instructions:
+            # increase the pc only if the pass find a real instruction
+            if self._is_instruction(line):
+                pc += 1
+            elif self._is_label_declaration(line):
+                # extract the label name from the instruction line
+                label = self._remove_comment(line).replace('(', '').replace(')', '')
+                # add the label to the symbol table
+                self._symbol_table.add(label, pc)
+        # now that the symbol table has all labels, we set the symbol table to the Code object
+        self._code.set_symbol_table(self._symbol_table)
 
     # iterate and translate each assembly instruction to hack machine code
-    def _pass(self):
+    def _second_pass(self):
         for line in self._instructions:
             # translate if the current line is a real instruction
             if self._is_instruction(line):
@@ -25,8 +43,8 @@ class HackAssembler:
                     comp, dest, jump = self._translate_c_instruction(instruction)
                     out = '111' + comp + dest + jump
                 else:  # translate a A-Instruction
-                    number = self._translate_a_instruction(instruction)
-                    out = '0' + number
+                    value = self._translate_a_instruction(instruction)
+                    out = '0' + value  # op_code + value
                 self._machine_code.append(out+'\n')
         self._hack_file = open(self._hack_file_name, 'w')  # open the output hack file
         self._hack_file.writelines(self._machine_code)  # write the machine code instructions in the file
@@ -35,9 +53,8 @@ class HackAssembler:
     # receive an assembly A-Instruction and return the 15-bits address
     def _translate_a_instruction(self, instruction):
         self._parser.set_a_instruction(instruction)
-        n = self._parser.number()
-        nn = self._code.number(n)
-        return nn
+        v = self._parser.value()
+        return self._code.value(v)
 
     # receive an assembly C-Instruction and return a tuple with the 3 layers of machine language
     def _translate_c_instruction(self, instruction):
@@ -49,6 +66,10 @@ class HackAssembler:
         dd = self._code.dest(d)
         jj = self._code.jump(j)
         return cc, dd, jj
+
+    def _is_label_declaration(self, line):
+        instruction = line.replace(' ', '')
+        return instruction != '' and instruction[0] == '('
 
     # return True if the current line is a assembly instruction
     # return False if the current line is a blank line or a comment line
